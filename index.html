@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sorteo 365 Cloud</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f4f7f6; padding: 20px; }
+        .box { background: white; padding: 40px; border-radius: 15px; display: inline-block; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        #numero { font-size: 100px; color: #27ae60; margin: 20px 0; font-weight: bold; }
+        button { background: #2980b9; color: white; border: none; padding: 15px 30px; font-size: 20px; border-radius: 5px; cursor: pointer; }
+        button:disabled { background: #bdc3c7; }
+        #historial { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+        .tag { background: #34495e; color: white; padding: 5px 10px; border-radius: 3px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Sorteo 1-365 (Nube)</h2>
+        <div id="numero">--</div>
+        <button id="btn" onclick="ejecutarSorteo()">¡SORTEAR!</button>
+        <p id="info">Sincronizando con Google Sheets...</p>
+        <div id="historial"></div>
+    </div>
+
+    <script>
+        const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbxsPxXAxarzoV39xKMTq_d8qjAWMunHqSN7kTn81tboXSrPLX4PIerwRzi4PFIDsdJ6dw/exec"; // <--- PEGA TU URL AQUÍ
+        let historial = [];
+
+        async function cargarHistorial() {
+            const resp = await fetch(URL_GOOGLE);
+            historial = await resp.json();
+            actualizarUI();
+        }
+
+        async function ejecutarSorteo() {
+            document.getElementById('btn').disabled = true;
+            document.getElementById('info').innerText = "Generando y guardando...";
+
+            let disponibles = Array.from({length: 360}, (_, i) => i + 1).filter(n => !historial.includes(n));
+            
+            if (disponibles.length === 0) {
+                alert("No quedan números");
+                return;
+            }
+
+            let ganador = disponibles[Math.floor(Math.random() * disponibles.length)];
+            
+            // Guardar en Google Sheets
+            await fetch(URL_GOOGLE, {
+                method: 'POST',
+                body: JSON.stringify({accion: "guardar", numero: ganador})
+            });
+
+            historial.push(ganador);
+            document.getElementById('numero').innerText = ganador;
+            actualizarUI();
+            document.getElementById('btn').disabled = false;
+        }
+
+        function actualizarUI() {
+            document.getElementById('info').innerText = `Quedan ${360 - historial.length} números.`;
+            const lista = document.getElementById('historial');
+            lista.innerHTML = "";
+            historial.forEach(n => {
+                let span = document.createElement('span');
+                span.className = "tag";
+                span.innerText = n;
+                lista.appendChild(span);
+            });
+        }
+
+        cargarHistorial();
+    </script>
+</body>
+</html>
